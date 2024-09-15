@@ -1,27 +1,61 @@
-import random
+import tkinter as tk
+from tkinter import messagebox
+import requests
+from datetime import datetime
 
-greetings = ["Hello!", "Good day!", "Hi!", "Hey!", "Nice to see you!"]
-farewells = ["See you later!", "Goodbye!", "Take care!", "Farewell!", "All the best!"]
+api_key = "00ee7d7ade9e948cb8cdf771e9528d49"
 
-def handleGreeting():
-    return random.choice(greetings)
+def get_weather(city):
+    try:
+        url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
+        response = requests.get(url)
+        data = response.json()
 
-def handleFarewell():
-    return random.choice(farewells)
+        if data["cod"] != 200:
+            raise Exception(data["message"])
 
-def handleRandomImage(category):
-    imageCategories = {
-        "nature": ["", "nature2.jpg", "nature3.jpg"],
-        "animals": ["animal1.jpg", "animal2.jpg", "animal3.jpg"],
-        "cars": ["car1.jpg", "car2.jpg", "car3.jpg"]
-    }
+        temperature = data["main"]["temp"]
+        weather_description = data["weather"][0]["description"]
+        humidity = data["main"]["humidity"]
+        wind_speed = data["wind"]["speed"]
+        
+        return temperature, weather_description, humidity, wind_speed
+    except Exception:
+        raise Exception(f"Error retrieving weather data: ")
+
+def update_weather():
+    city = city_entry.get()
+    if not city:
+        messagebox.showwarning("Input Error", "Please enter a city name.")
+        return
     
-    if category not in imageCategories:
-        return f"Category '{category}' not found. Please try another one."
-    
-    return random.choice(imageCategories[category])
+    try:
+        temperature, weather_description, humidity, wind_speed = get_weather(city)
+        result = (f"City: {city}\n"
+                  f"Temperature: {temperature} °C\n"
+                  f"Weather: {weather_description.capitalize()}\n"
+                  f"Humidity: {humidity}%\n"
+                  f"Wind Speed: {wind_speed} m/s")
+        
+        weather_label.config(text=result)
+    except Exception as e:
+        messagebox.showerror("Error", str(e))
+root = tk.Tk()
+root.title("Weather App")
 
-print(handleGreeting())
-print(handleFarewell())
-print(handleRandomImage("nature"))
-print(handleRandomImage("music"))
+city_label = tk.Label(root, text="Enter city:")
+city_label.pack(pady=5)
+
+city_entry = tk.Entry(root)
+city_entry.pack(pady=5)
+
+get_weather_button = tk.Button(root, text="Get Weather", command=update_weather)
+get_weather_button.pack(pady=5)
+
+weather_label = tk.Label(root, text="", font=("Helvetica", 12))
+weather_label.pack(pady=10)
+
+root.geometry("400x300")
+root.resizable(True, True)
+
+root.mainloop()
